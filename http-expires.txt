@@ -1,0 +1,21 @@
+<html>     
+  <head>     
+  <meta   http-equiv="Expires"   CONTENT="0">     
+  <meta   http-equiv="Cache-Control"   CONTENT="no-cache">     
+  <meta   http-equiv="Pragma"   CONTENT="no-cache">     
+  </head>     
+    
+          如果使用上面的方法强制浏览器不再缓存Web页面，必须注意以下几点：     
+    
+          只有在使用安全连接时“Pragma:   no-cache”才防止浏览器缓存页面。对于不受安全保护的页面，“Pragma:   no-cache”被视为与“Expires:   -1”相同，此时浏览器仍旧缓存页面，但把页面标记为立即过期。
+
+NO.2   作者： wanghr100
+屏蔽掉IE的后退按钮   
+  http://expert.csdn.net/Expert/topic/1556/1556985.xml?temp=.9912989   
+    
+    
+  其实方法很多的..   
+  1.   
+  <body   onload=history.go(1)>     
+  2.   
+  window.location.replace("newpage.htm")   

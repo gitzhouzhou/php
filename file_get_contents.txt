@@ -1,0 +1,12 @@
+<?php      
+    $url = "http://zhoz.com/zhoz.php";      
+    $ctx = stream_context_create(array(      
+    'http' => array('timeout' => 10)      
+    )      
+    );      
+    $result = @file_get_contents($url, 0, $ctx);      
+    if($result){      
+        var_dump($result);      
+    }else{      
+        echo " Buffer is empty";      
+    }      

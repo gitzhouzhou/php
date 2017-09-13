@@ -1,0 +1,80 @@
+[php]实现页面GZIP压缩输出  
+作者：Fanbin　时间： 2008-03-20　文档类型：原创　来自：蓝色理想 
+
+
+ 
+ 
+ 
+饼干是这样压缩的——PHP使用zlib扩展实现页面GZIP压缩输出
+
+GZIP（GNU-ZIP）是一种压缩技术。经过GZIP压缩后页面大小可以变为原来的30%甚至更小。这样用户浏览的时候就会感觉很爽很愉快！
+要实现GZIP压缩页面需要浏览器和服务器共同支持，实际上就是服务器压缩，传到浏览器后浏览器解压并解析。浏览器那边不需要我们担心，因为现在绝大多数浏览器都支持解析GZIP过的页面。我们只要把页面在服务器端压缩再输出到浏览器就行了。
+
+有点罗嗦，下面说正事：
+
+正如要制作压缩饼干，先要拿到原料，要压缩一个页面，首先要获得要输出的内容。PHP中的ob_start()（ob => output buffer）函数可以实现这个功能，它可以把程序里准备输出的内容先放到一个叫做“缓冲区”的地方，当然，你可以理解为制作压缩饼干的暂时放原料的工作台。
+这个函数一定要在页面输出之前使用，所以一般把它放在代码的最顶端。因为它就像是一个工作台，所以你要在原料到来之前就要准备好它，否则原料来了没地方放，会出问题的。用ob_start()得到要压缩的页面之后，我们就可以制作压缩饼干了，不对，应该是可以压缩页面了！不过好像还缺少一台压缩机， EZ，我们用PHP带的zlib扩展做一台：
+
+function ob_gzip($content) // $content 就是要压缩的页面内容，或者说饼干原料
+{    
+    if(    !headers_sent() && // 如果页面头部信息还没有输出
+        extension_loaded("zlib") && // 而且zlib扩展已经加载到PHP中
+        strstr($_SERVER["HTTP_ACCEPT_ENCODING"],"gzip")) //而且浏览器说它可以接受GZIP的页面 
+    {
+        $content = gzencode($content." \n//此页已压缩",9); 为准备压缩的内容贴上“//此页已压缩”的注释标签，然后用zlib提供的gzencode()函数执行级别为9的压缩，这个参数值范围是0-9，0表示无压缩，9表示最大压缩，当然压缩程度越高越费CPU。
+        
+        //然后用header()函数给浏览器发送一些头部信息，告诉浏览器这个页面已经用GZIP压缩过了！
+        header("Content-Encoding: gzip"); 
+        header("Vary: Accept-Encoding");
+        header("Content-Length: ".strlen($content));
+    }
+    return $content; //返回压缩的内容，或者说把压缩好的饼干送回工作台。
+}
+压缩机做好了之后，我们把压缩机放到工作台上，于是原来的ob_start()变成
+
+ob_start('ob_gzip'); //没错，就是给ob_start()加一个参数，参数名就是我们刚才做的“压缩机”的函数名。这样当内容进入缓冲区后PHP就会调用ob_gzip函数把它压缩了。
+好了，所有的工作已完成，最后交货：
+
+ob_end_flush(); //结束缓冲区，输出内容。当然，不用这个函数也行，因为程序执行到最后会自动将缓冲区内容输出。
+完整的示例如下：
+
+<?php
+//启用一个带有ob_gzip压缩机的工作台
+ob_start('ob_gzip');
+//准备一些待压缩的内容
+for($i=0; $i<100; $i++)
+{
+    echo('这里是压缩饼干的原料，这里是压缩饼干的原料，原料');
+}
+//输出压缩成果
+ob_end_flush();
+//这是ob_gzip压缩机
+function ob_gzip($content)
+{    
+    if(    !headers_sent() &&
+        extension_loaded("zlib") &&
+        strstr($_SERVER["HTTP_ACCEPT_ENCODING"],"gzip"))
+    {
+        $content = gzencode($content." \n//此页已压缩",9);
+        
+        header("Content-Encoding: gzip");
+        header("Vary: Accept-Encoding");
+        header("Content-Length: ".strlen($content));
+    }
+    return $content;
+}
+?>
+经过实际测试，上面代码中如果不用GZIP，是4.69KB=4802.56B，启用GZIP后缩小为104B ，呃……我数学可能不好，自己算下压缩到了原来的百分之多少吧。。
+
+另外，下面是用FlashGet获取的日志信息，可以看到我们程序里加的header信息：
+
+Fri Jan 25 17:53:10 2008 HTTP/1.1 200 OK
+Fri Jan 25 17:53:10 2008 Server: Microsoft-IIS/5.1
+Fri Jan 25 17:53:10 2008 Date: Fri, 25 Jan 2008 09:53:10 GMT
+Fri Jan 25 17:53:10 2008 Connection: close
+Fri Jan 25 17:53:10 2008 X-Powered-By: PHP/5.2.5
+Fri Jan 25 17:53:10 2008 Content-Encoding: gzip
+Fri Jan 25 17:53:10 2008 Vary: Accept-Encoding
+Fri Jan 25 17:53:10 2008 Content-Length: 104
+Fri Jan 25 17:53:10 2008 Content-type: text/html
+ 
